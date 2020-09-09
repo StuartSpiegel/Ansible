@@ -1,0 +1,7 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: "Include apply-stig-to-ubuntu-18.04"
+      include_role:
+        name: "apply-stig-to-ubuntu-18.04"
