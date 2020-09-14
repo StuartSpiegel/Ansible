@@ -1,4 +1,74 @@
 ---
+- name: "CAT II | UBTU-18-010514 | REMEDIATE | The Ubuntu operating system must implement address space layout randomization to protect its memory from unauthorized code execution."
+  lineinfile:
+    path: /etc/sysctl.conf
+    regexp: "^kernel.randomize_va_space"
+    line: "{{ ubtu1804stig_etc_sysctl_conf_Line }}"
+    state: absent
+  when:
+    - ubtu_18_010514
+
+- name: "CAT II | UBTU-18-010515 | REMEDIATE | The Ubuntu operating system must use a file integrity tool to verify correct operation of all security functions."
+  apt:
+    name: aide
+    state: latest
+  when:
+    - ubtu_18_010515
+
+- name: "CAT II | UBTU-18-010516 | REMEDIATE | The Ubuntu operating system must be configured so that a file integrity tool verifies the correct operation of security functions every 30 days."
+  copy:
+    src: /usr/share/aide/config/cron.daily/aide
+    dest: /etc/cron.daily/aide
+    remote_src: yes
+  when:
+    - ubtu_18_010516
+
+- name: "CAT II | UBTU-18-010520 | REMEDIATE | The Ubuntu operating system must have an application firewall enabled."
+  ufw:
+    state: enabled
+  when:
+    - ubtu_18_010520
+
+- name: "CAT II | UBTU-18-010521 | REMEDIATE | The Ubuntu operating system must disable all wireless network adapters."
+  command: ifdown {{ wireless_interface }}
+  when:
+    - ubtu_18_010521
+
+- name: "CAT II | UBTU-18-010324 | REMEDIATE | The Ubuntu operating system must generate audit records for successful/unsuccessful uses of the crontab command."
+  lineinfile:
+    path: /etc/audit/rules.d/stig.rules
+    regexp: "^{{ item.regexp }}"
+    line: "{{ item.line }}"
+    create: yes
+  with_items:
+    - { regexp: '-a always,exit -F arch=b32 -S removexattr -F auid>=1000 -F auid!=4294967295 -k perm_mod', line: '-a always,exit -F arch=b32 -S removexattr -F auid>=1000 -F auid!=4294967295 -k perm_mod' }
+    - { regexp: '-a always,exit -F arch=b32 -S removexattr -F auid=0 -k perm_mod', line: '-a always,exit -F arch=b32 -S removexattr -F auid=0 -k perm_mod' }
+    - { regexp: '-a always,exit -F arch=b64 -S removexattr -F auid>=1000 -F auid!=4294967295 -k perm_mod', line: '-a always,exit -F arch=b64 -S removexattr -F auid>=1000 -F auid!=4294967295 -k perm_mod' }
+    - { regexp: '-a always,exit -F arch=b64 -S removexattr -F auid=0 -k perm_mod', line: '-a always,exit -F arch=b64 -S removexattr -F auid=0 -k perm_mod' }
+  when:
+    - ubtu_18_010324
+
+- name: "CAT II | UBTU-18-010353 | REMEDIATE | The Ubuntu operating system must generate audit records for successful/unsuccessful uses of the crontab command."
+  lineinfile:
+    path: /etc/audit/rules.d/stig.rules
+    regexp: "^-a always,exit -F path=/usr/bin/crontab -F perm=x -F auid>=1000 -F auid!=4294967295 -k privileged-crontab"
+    line: "{{ ubtu1804stig_etc_audit_rules_stig_rules_Line }}"
+    create: yes
+  when:
+    - ubtu_18_010353
+
+- name: "CAT II | UBTU-18-010509 | REMEDIATE | The Ubuntu operating system must disable automatic mounting of Universal Serial Bus (USB) mass storage driver."
+  lineinfile:
+    path: /etc/modprobe.d/DISASTIG.conf
+    regexp: "^{{ item.From }}"
+    line: "{{ item.To }}"
+    create: yes
+  with_items:
+    - { From: 'install usb-storage', To: 'install usb-storage /bin/true' }
+    - { From: 'blacklist usb-storage', To: 'blacklist usb-storage' }
+  when:
+    - ubtu_18_010509
+
 - name: CAT II | UBTU-18-010002 | The Ubuntu operating system must initiate session audits at system startup
   block:
     - name: CAT II | UBTU-18-010002 | Configuring the Ubuntu operating system to produce audit records at system startup
@@ -198,4 +268,3 @@
 
     - name: Configure the operating system to use "pwquality" to enforce password complexity rules.
       shell: apt-get install libpam-pwquality -y
-#######################################################
