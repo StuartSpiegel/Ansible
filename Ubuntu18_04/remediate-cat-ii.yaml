@@ -1,0 +1,114 @@
+---
+- name: "CAT II | UBTU-18-010002 | REMEDIATE | The Ubuntu operating system must initiate session audits at system startup."
+  become: true
+  lineinfile:
+    state: present
+    dest: /etc/default/grub
+    backrefs: yes
+    regexp: '^(GRUB_CMDLINE_LINUX=(?!.* audit)\"[^\"]+)(\".*)'
+    line: '\1 audit=1/2'
+  notify: update grub
+- name: "CAT II | UBTU-18-010324 | REMEDIATE | The Ubuntu operating system must generate audit records for successful/unsuccessful uses of the crontab command."
+  become: true
+  lineinfile:
+    path: /etc/audit/rules.d/stig.rules
+    regexp: "^{{ item.regexp }}"
+    line: "{{ item.line }}"
+    create: true
+  with_items:
+    - { regexp: '-a always,exit -F arch=b32 -S removexattr -F auid>=1000 -F auid!=4294967295 -k perm_mod', line: '-a always,exit -F arch=b32 -S removexattr -F auid>=1000 -F auid!=4294967295 -k perm_mod' }
+    - { regexp: '-a always,exit -F arch=b32 -S removexattr -F auid=0 -k perm_mod', line: '-a always,exit -F arch=b32 -S removexattr -F auid=0 -k perm_mod' }
+    - { regexp: '-a always,exit -F arch=b64 -S removexattr -F auid>=1000 -F auid!=4294967295 -k perm_mod', line: '-a always,exit -F arch=b64 -S removexattr -F auid>=1000 -F auid!=4294967295 -k perm_mod' }
+    - { regexp: '-a always,exit -F arch=b64 -S removexattr -F auid=0 -k perm_mod', line: '-a always,exit -F arch=b64 -S removexattr -F auid=0 -k perm_mod' }
+  when:
+    - ubtu_18_010324
+
+- name: "CAT II | UBTU-18-010353 | REMEDIATE | The Ubuntu operating system must generate audit records for successful/unsuccessful uses of the crontab command."
+  become: true
+  lineinfile:
+    path: /etc/audit/rules.d/stig.rules
+    regexp: "^-a always,exit -F path=/usr/bin/crontab -F perm=x -F auid>=1000 -F auid!=4294967295 -k privileged-crontab"
+    line: "{{ ubtu1804stig_etc_audit_rules_stig_rules_Line }}"
+    create: true
+  when:
+    - ubtu_18_010353
+
+- name: "CAT II | UBTU-18-010509 | REMEDIATE | The Ubuntu operating system must disable automatic mounting of Universal Serial Bus (USB) mass storage driver."
+  become: true
+  lineinfile:
+    path: /etc/modprobe.d/DISASTIG.conf
+    regexp: "^{{ item.From }}"
+    line: "{{ item.To }}"
+    create: true
+  with_items:
+    - { From: 'install usb-storage', To: 'install usb-storage /bin/true' }
+    - { From: 'blacklist usb-storage', To: 'blacklist usb-storage' }
+  when:
+    - ubtu_18_010509
+
+- name: "CAT II | UBTU-18-010021 | REMEDIATE | The Ubuntu operating system must deploy Endpoint Security for Linux Threat Prevention (ENSLTP)."
+  become: true
+  apt:
+    name: isectp
+    update_cache: yes
+    state: latest
+  when:
+    - ubtu_18_010021
+
+- name: "CAT II | UBTU-18-010017 | REMEDIATE | The Ubuntu operating system must be configured so that Advance package Tool (APT) removes all software components after updated versions have been installed."
+  become: true
+  block:
+    - name: "CAT II | UBTU-18-010017 | REMEDIATE | Ensuring APT removes all unused dependencies."
+      lineinfile:
+        path: /etc/apt/apt.conf.d/50unattended-upgrades
+        regexp: '^Unattended-Upgrade::Remove-Unused-Dependencies'
+        line: Unattended-Upgrade::Remove-Unused-Dependencies "true";
+        state: present
+        create: true
+
+    - name: "CAT II | UBTU-18-010017 | REMEDIATE | Ensuring APT removes all unused kernel packages."
+      lineinfile:
+        path: /etc/apt/apt.conf.d/50unattended-upgrades
+        regexp: '^Unattended-Upgrade::Remove-Unused-Kernel-Packages'
+        line: Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+        state: present
+        create: true
+  when:
+    - ubuntu_18_010424
+
+- name: "CAT II | UBTU-18-010507 | REMEDIATE | The Ubuntu operating system must enable and run the uncomplicated firewall(ufw)."
+  become: true
+  ufw:
+    state: enabled
+  when:
+    - ubtu_18_010507
+
+- name: "CAT II | UBTU-18-010033 | REMEDIATE | The Ubuntu operating system must be configured so that three consecutive invalid logon attempts by a user locks the account."
+  become: true
+  lineinfile:
+    dest: /etc/pam.d/common-auth
+    regexp: "^{{ item.From }}"
+    line: "{{ item.To }}"
+    create: yes
+  with_items:
+    - { From: 'auth required pam_tally2.so', To: 'auth required pam_tally2.so onerr=fail deny=3' }
+  when:
+    - ubtu_18_010033
+- name: "CAT II | UBTU-18-010038 | REMEDIATE |  The Ubuntu operating system must display the Standard Mandatory DoD Notice and Consent Banner before granting any publically accessible connection to the system."
+  become: true
+  lineinfile:
+    path: /etc/issue
+    regexp: "^{{ item.regexp }}"
+    line: "{{ item.line }}"
+    create: yes
+  with_items:
+    - { regexp: '^You are accessing a U.S. Government (USG) Information System (IS) that is provided for USG-authorized use only', line: 'You are accessing a U.S. Government (USG) Information System (IS) that is provided for USG-authorized use only' }
+    - { regexp: '^By using this IS (which includes any device attached to this IS), you consent to the following conditions:', line: 'By using this IS (which includes any device attached to this IS), you consent to the following conditions:' }
+    - { regexp: '^The USG routinely intercepts and monitors communications on this IS for purposes including, but not limited to, penetration testing, COMSEC monitoring, network operations and defense, personnel misconduct (PM), law enforcement (LE), and counterintelligence (CI) investigations.', line: 'The USG routinely intercepts and monitors communications on this IS for purposes including, but not limited to, penetration testing, COMSEC monitoring, network operations and defense, personnel misconduct (PM), law enforcement (LE), and counterintelligence (CI) investigations.' }
+    - { regexp: '^At any time, the USG may inspect and seize data stored on this IS.', line: 'At any time, the USG may inspect and seize data stored on this IS.' }
+    - { regexp: '^Communications using, or data stored on, this IS are not private, are subject to routine monitoring, interception, and search, and may be disclosed or used for any USG-authorized purpose.', line: 'Communications using, or data stored on, this IS are not private, are subject to routine monitoring, interception, and search, and may be disclosed or used for any USG-authorized purpose.' }
+    - { regexp: '^This IS includes security measures (e.g., authentication and access controls) to protect USG interests--not for your personal benefit or privacy', line: 'This IS includes security measures (e.g., authentication and access controls) to protect USG interests--not for your personal benefit or privacy' }
+    - { regexp: '^Notwithstanding the above, using this IS does not constitute consent to PM, LE or CI investigative searching or monitoring of the content of privileged communications, or work product, related to personal representation or services by attorneys, psychotherapists, or clergy, and their assistants. Such communications and work product are private and confidential. See User Agreement for details.', line: 'Notwithstanding the above, using this IS does not constitute consent to PM, LE or CI investigative searching or monitoring of the content of privileged communications, or work product, related to personal representation or services by attorneys, psychotherapists, or clergy, and their assistants. Such communications and work product are private and confidential. See User Agreement for details.' }
+  when:
+    - ubtu_18_010038
+
