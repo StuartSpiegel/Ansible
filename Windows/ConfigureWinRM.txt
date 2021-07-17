@@ -1,0 +1,6 @@
+@powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ((new-object net.webclient).DownloadString('https://github.com/ansible/ansible/raw/devel/examples/scripts/ConfigureRemotingForAnsible.ps1'))"
+winrm quickconfig
+Set-Item -Path WSMan:localhostServiceAuthBasic -Value $true
+Set-Item -Path WSMan:localhostServiceAllowUnencrypted -Value $true
+ansible windows -i hosts -m win_ping
+ansible-playbook windows -i hosts windows.yml

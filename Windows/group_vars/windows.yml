@@ -1,0 +1,290 @@
+# Provision Windows Host Environment - Spiegel 7/17/2021
+---
+- hosts: windows
+  tasks:
+  - name: Install git
+    win_chocolately:
+      name: git
+      state: present
+
+  - name: Upgrade installed packages
+    win_chocolately:
+      name: all
+      state: latest
+
+  - name: Install multiple desired packages for Environment
+    win_chocolately:
+      name:
+      - procexp
+      - putty
+      - winddirstat
+      state: present
+
+  - name: Install CURL using proxy
+    win_chocolately:
+      name: CURL
+      proxy_url: http://proxy-server:8080/
+      proxy_username: stuart
+      proxy_password: changeME123$$
+
+  # Persist Chocolately settings
+  - name: Gather facts from Chocolately
+    win_chocolately_facts:
+
+  - name: Display the configuration
+    debug:
+      var: ansible_chocolately.config
+
+  - name: Displays the Sources
+    debug:
+      var: ansible_chocolatey.sources
+
+  - name: Displays the Packages
+    debug:
+      var: ansible_chocolatey.packages
+
+  - name: Set the cache location for Chocolately
+    win_chocolately_config:
+      name: cacheLocation
+      state: present
+      value: J:/chocolately_temp
+
+  - name: Stop Chocolately on first package failure
+    win_chocolately:
+      name: stopOnFirstPackageFailure
+      state: enabled
+
+  #Install Software For environment provisioning
+  - name: Ensure 7-zip is install via Chocolately
+    win_chocolately:
+      name: 7zip
+      state: present
+
+  - name: Ensure Microsoft Visual C++ Redist for VS Code 2015-2019
+    win_chocolately:
+      name: vcredist140
+      state: present 
+
+  - name: Ensure Python3 is installed 
+    win_chocolately:
+      name: python3
+      state: present
+
+  - name: Chocolately .NET framework extension 1.0.1
+    shell: choco install chocolatey-dotnetfx.extension
+    args:
+      executable: /usr/bin/pwsh
+    register: FrameworkExtension
+
+  - name: Chocolately CORE extensions
+    shell: choco install chocolatey-core.extension
+    args:
+      executable: /usr/bin/pwsh
+    register: FrameworkExtension
+
+  - name: Chocolately install Notepad++
+    win_chocolately:
+      name: notepadplusplus
+      state: latest
+
+  - name: Chocolately install VisualStudio
+    shell: choco install visualstudio2017buildtools
+    args:
+      executable: /usr/bin/pwsh
+
+  - name: Chocolately install OpenSSH
+    shell: choco install openssh
+    args:
+      executable: /usr/bin/pwsh
+
+  - name: Install Node.js
+    shell: choco install nodejs.install
+    args:
+      executable: /usr/bin/pwsh
+
+  - name: Install Node.js
+    shell: choco install nodejs.install
+    args:
+      executable: /usr/bin/pwsh
+
+  - name: Install WindowsSystemInternals
+    shell: choco install sysinternals
+    args:
+      executable: /usr/bin/pwsh
+  
+  - name: Install JavaRuntimeEnvironment (JRE)
+    shell: choco install javaruntime
+    args:
+      executable: /usr/bin/pwsh
+
+  - name: Install Putty SSH client
+    shell: choco install putty.install 
+    args:
+      executable: /usr/bin/pwsh
+
+  - name: Install JDK8
+    shell: choco install jdk8
+    args:
+      executable: /usr/bin/pwsh
+
+  - name: Install WinlogBeat
+    shell: choco install winlogbeat
+    args:
+      executable: /usr/bin/pwsh
+
+  - name: Install VisualStudio Code
+    shell: choco install vscode
+    args:
+      executable: /usr/bin/pwsh
+
+  - name: Install WinlogBeat
+    shell: choco install winlogbeat
+    args:
+      executable: /usr/bin/pwsh
+
+  - name: Install WinSCP
+    shell: choco install winscp.install
+    args:
+      executable: /usr/bin/pwsh
+
+  - name: Install WinSCP
+    shell: choco install winscp.install
+    args:
+      executable: /usr/bin/pwsh
+
+  - name: Install AWS-CLI
+    shell: choco install awscli
+    args:
+      executable: /usr/bin/pwsh
+
+  - name: Install PHP 
+    shell: choco install php
+    args:
+      executable: /usr/bin/pwsh
+
+  - name: Install Filebeat
+    shell: choco install filebeat
+    args:
+      executable: /usr/bin/pwsh
+  
+  - name: Install VirtualBox
+    shell: choco install virtualbox
+    args:
+      executable: /usr/bin/pwsh
+
+  # Windows Audit Policy events && Event Manager
+  - name: Enable failure auditing for the subcategory "File System"
+    win_audit_policy_system:
+      subcategory: File System
+      audit_type: failure
+
+  - name: Enable all auditing types for the category "Account logon events"
+    win_audit_policy_system:
+      category: Account logon events
+      audit_type: success, failure
+
+  - name: Set Windows Environment Variables 
+    win_environment:
+      state: present
+      name: JAVA_HOME
+      value: C:/ProgramFiles/Java/jre1.8.0_291
+      level: machine
+
+  # Windows Firewall Rules && Host hardening
+  - name: Firwall Rule -ALLOW SMTP on PORT 25
+    win_firewall_rule:
+      name: SMTP
+      localport: 25
+      action: allow
+      direction: in
+      protocol: tcp
+      state: present 
+      enabled: yes
+
+  - name: Firewall rule to allow RDP on TCP PORT 3389
+    win_firewall_rule:
+      name: Remote Desktop
+      localport: 3389
+      action: allow
+      direction: in
+      protocol: tcp
+      profiles: private
+      state: present
+      enabled: yes
+
+  - name: Firwall Rule to create the Application Group
+    win_firewall_rule:
+      name: SMTP
+      group: application
+      localport: 25
+      action: allow
+      direction: in
+      protocol: tcp
+      state: present
+      enabled: yes
+
+  - name: FW Rule to DISALLOW emphemeral port range  
+    win_firewall_rule:
+      name: Port Range
+      localport: 5000-8080
+      action: block
+      protocol: any
+      state: present
+      enabled: yes
+
+  # WinPath Module
+  - name: Ensure that system32 and Powershell are present on the global system path, and in the specified order
+    win_path:
+      elements:
+      - '%SystemRoot%\system32'
+      - '%SystemRoot%\system32\WindowsPowerShell\v1.0'
+
+  - name: Get information about Root FileSystem folder (dir)
+    win_scheduled_task_stat:
+      path: \system32
+    register: task_folder_stat
+
+  - name: Obtain information about Root FileSystem folder
+    win_stat:
+      path: C:\Windows\System32
+    register: folder_info
+
+  #Powershell
+  - name: Update Powershell module to latest version 
+    win_psmodule:
+      name: PowerShellModule
+      state: latest
+
+  #Create Ansible Profile for Windows Account
+  - name: Create a profile for an account at C:\Users\ansible
+    win_user_profile:
+      username: ansible-account
+      name: ansible
+      state: present
+
+  - name: Add account to Log on as a service
+    win_user_right:
+      name: SeServiceLogonRight
+      users:
+      - .\Administrator
+      - '{{ansible_hostname}}\local-user'
+      action: add
+
+  # Windows Updates and Security Patches
+  - name: Install all security, critical, and rollup Updates
+    win_updates:
+      category_names:
+        - SecurityUpdates
+        - CriticalUpdates
+        - UpdateRollups
+      state: installed
+    register: update_result
+
+  - name: Reboot host if required
+    win_reboot:
+    when: update_result.reboot_required
+
+  - name: Run ngen tasks after Windows .NET framework installation or updates 
+    win_dotnet_ngen:
+
+
