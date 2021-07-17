@@ -16,8 +16,7 @@
     win_chocolately:
       name:
       - procexp
-      - putty
-      - winddirstat
+      - windirstat
       state: present
 
   - name: Install CURL using proxy
